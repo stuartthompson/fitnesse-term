@@ -1,0 +1,6 @@
+# Build artifact
+fitnesse-term
+
+# VSCode files
+.vscode
+debug
