@@ -66,7 +66,6 @@ func (j *Journal) ReadJournal() error {
 	}
 
 	// Unmarshal journal
-	var journal *Journal
 	json.Unmarshal(rawJournal, &j)
 
 	return nil

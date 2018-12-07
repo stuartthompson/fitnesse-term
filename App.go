@@ -22,6 +22,7 @@ import (
 
 	termbox "github.com/nsf/termbox-go"
 	"github.com/stuartthompson/fitnesse-term/configuration"
+	"github.com/stuartthompson/fitnesse-term/data"
 	"github.com/stuartthompson/fitnesse-term/io"
 	"github.com/stuartthompson/fitnesse-term/io/screen"
 	"github.com/stuartthompson/fitnesse-term/screens"
@@ -35,6 +36,7 @@ type Screen int
 const (
 	ConfigScreen = iota
 	AboutScreen
+	JournalScreen
 )
 
 // configFileName ...
@@ -47,9 +49,11 @@ type App struct {
 	isRunning       bool
 	eventListener   *io.EventListener
 	configuration   *configuration.AppConfig
+	journal			*data.Journal
 	currentScreen   Screen
 	configScreen    *screens.ConfigScreen
 	aboutScreen     *screens.AboutScreen
+	journalScreen	*screens.JournalScreen
 	bottomBar       *screens.BottomBarComponent
 }
 
@@ -59,6 +63,7 @@ func NewApp() *App {
 	app := &App{
 		isRunning:     true,
 		configuration: &configuration.AppConfig{},
+		journal: &data.Journal{},
 		currentScreen: AboutScreen,
 	}
 	app.eventListener = io.NewEventListener(app.Render)
@@ -84,6 +89,13 @@ func (a *App) Run() {
 		return
 	}
 
+	// Read journal
+	err = a.journal.ReadJournal()
+	if err != nil {
+		log.Print("Unable to read journal. Exiting.")
+		return
+	}
+
 	// Initialize canvas
 	width, height := io.GetWindowSize()
 
@@ -95,6 +107,7 @@ func (a *App) Run() {
 	// Initialize screens
 	a.configScreen = screens.NewConfigScreen(a.configuration, mainViewport)
 	a.aboutScreen = screens.NewAboutScreen(a.configuration, mainViewport)
+	a.journalScreen = screens.NewJournalScreen(a.configuration, mainViewport, a.journal)
 	a.bottomBar = screens.NewBottomBarComponent(a.configuration, bottomViewport)
 
 	// Register keypress handlers
@@ -119,6 +132,8 @@ func (a *App) Render() {
 		a.configScreen.Render()
 	case AboutScreen:
 		a.aboutScreen.Render()
+	case JournalScreen:
+		a.journalScreen.Render()
 	}
 
 	// Render bottom bar
@@ -133,6 +148,7 @@ func (a *App) registerKeypressHandlers() {
 	// TODO: Screens should really register their own list of keys vs. having a single global list
 	a.eventListener.RegisterKeypressHandler('?', a.showAboutScreen)
 	a.eventListener.RegisterKeypressHandler('c', a.showConfigScreen)
+	a.eventListener.RegisterKeypressHandler('j', a.showJournalScreen)
 	a.eventListener.RegisterKeypressHandler('q', a.onQuit)
 }
 
@@ -142,6 +158,10 @@ func (a *App) showConfigScreen() {
 
 func (a *App) showAboutScreen() {
 	a.currentScreen = AboutScreen
+}
+
+func (a *App) showJournalScreen() {
+	a.currentScreen = JournalScreen
 }
 
 // onQuit ...
